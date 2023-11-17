@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "Docmanager"
+version = "0.1.0"
+description = "Тестовый проект: Загрузка текстовых документов через Google Drive API"
+authors = ["Александр Рассыхаев, leenominai@gmail.com, Telegram: @leenominai"]
+readme = "README.md"
+packages = [{include = "test_nova"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+django = "^4.2.7"
+google-api-python-client = "^2.108.0"
+python-dotenv = "^1.0.0"
+gunicorn = "^21.2.0"
+drf-spectacular = "^0.26.5"
+djangorestframework = "^3.14.0"
+
+[tool.poetry.group.test.dependencies]
+pre-commit = "^3.5.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
