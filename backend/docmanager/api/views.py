@@ -4,6 +4,7 @@ import logging
 import os
 
 from django.views.decorators.csrf import csrf_exempt
+from drf_spectacular.utils import extend_schema
 from google.oauth2 import service_account
 from google.api_core.exceptions import NotFound
 from googleapiclient import discovery
@@ -11,6 +12,8 @@ from googleapiclient.http import MediaIoBaseUpload
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+
+from .decorators import user_me_view_request_schema
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +26,8 @@ def load_credentials():
     return service_account.Credentials.from_service_account_info(credentials_data)
 
 
+@extend_schema(tags=["Загрузка файла в Google Drive"])
+@user_me_view_request_schema
 @csrf_exempt
 @api_view(["POST"])
 def create_google_drive_document(request):
@@ -39,13 +44,15 @@ def create_google_drive_document(request):
         data = request.data.get("data")
         name = request.data.get("name")
 
-        # if data is None or name is None:
-        #     return Response(
-        #         {"error": "Поле 'data' и 'name' должны быть указаны в запросе."},
-        #         status=status.HTTP_400_BAD_REQUEST
-        #     )
+        if data is None or name is None:
+            return Response(
+                {"error": "Поле 'data' и 'name' должны быть указаны в запросе."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         credentials = load_credentials()
+        user = request.user
+        print(user.id)
 
         drive = discovery.build('drive', 'v3', credentials=credentials)
 
@@ -59,8 +66,15 @@ def create_google_drive_document(request):
 
             logger.info(f"Документ успешно создан с именем: {name}")
 
+            file_id = file["id"]
+            file_info = drive.files().get(fileId=file_id).execute()
+
             return Response(
-                {"message": "Документ успешно создан."},
+                {
+                    "message": "Документ успешно создан.",
+                    "file_id": file_id,
+                    "file_name": file_info["name"],
+                },
                 status=status.HTTP_200_OK
             )
         except NotFound:
