@@ -2,7 +2,7 @@ version: "3.11"
 services:
 
   backend:
-    image: leenominai/test_backend
+    image: leenominai/test_nova_backend
     container_name: test_backend
     restart: always
     volumes:
