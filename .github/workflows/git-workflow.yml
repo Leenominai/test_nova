@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
 
 jobs:
   build_and_push_backend_to_docker_hub:
@@ -50,12 +47,12 @@ jobs:
           script: |
             sudo docker-compose down
             sudo docker pull ${{ secrets.DOCKER_USERNAME }}/test_nova_backend
-            
+
             if [ -f .env ]; then
               rm .env
             fi
             touch .env
-            
+
             echo ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }} >> .env
             echo SECRET_KEY=${{ secrets.SECRET_KEY }} >> .env
 

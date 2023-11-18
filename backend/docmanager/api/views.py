@@ -41,38 +41,48 @@ def create_google_drive_document(request):
 
         if data is None or name is None:
             return Response(
-                {"error": "Поле 'data' и 'name' должны быть указаны в запросе."},
-                status=status.HTTP_400_BAD_REQUEST
+                {
+                    "Ошибка": "Поле 'data' и 'name' должны быть указаны в запросе."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         if len(name) > 128:
             return Response(
-                {"error": "Длина поля 'name' не должна превышать 128 символов."},
-                status=status.HTTP_400_BAD_REQUEST
+                {
+                    "Ошибка": "Длина поля 'name' не должна превышать 128 символов."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if len(data) > 10485760:
+        if len(data) > 3145728:
             return Response(
-                {"error": "Файл не должен превышать 10 МБ."},
-                status=status.HTTP_400_BAD_REQUEST
+                {"Ошибка": "Файл не должен превышать 3 МБ."},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         creds = None
-        token_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'token.json')
+        token_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "token.json"
+        )
 
         if os.path.exists(token_path):
             creds = Credentials.from_authorized_user_file(token_path, SCOPES)
             if creds.expired:
                 creds.refresh(Request())
 
-                with open(token_path, 'w') as token:
+                with open(token_path, "w") as token:
                     token.write(creds.to_json())
         else:
-            credentials_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'credentials.json')
-            flow = InstalledAppFlow.from_client_secrets_file(credentials_path, SCOPES)
+            credentials_path = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)), "credentials.json"
+            )
+            flow = InstalledAppFlow.from_client_secrets_file(
+                credentials_path, SCOPES
+            )
             creds = flow.run_local_server(port=0)
 
-            with open(token_path, 'w') as token:
+            with open(token_path, "w") as token:
                 token.write(creds.to_json())
 
         try:
@@ -84,19 +94,28 @@ def create_google_drive_document(request):
                 .execute()
             )
             if existing_files.get("files"):
-                # Файл с таким именем уже существует
                 logging.warning(f"Документ с именем {name} уже существует.")
                 return Response(
-                    {"message": "Документ с таким именем уже существует."},
-                    status=status.HTTP_200_OK
+                    {"Ошибка": "Документ с таким именем уже существует."},
+                    status=status.HTTP_200_OK,
                 )
 
-            file = drive.files().create(
-                body={"name": name, "mimeType": "text/plain"},
-            ).execute()
+            file = (
+                drive.files()
+                .create(
+                    body={"name": name, "mimeType": "text/plain"},
+                )
+                .execute()
+            )
 
-            media_body = MediaIoBaseUpload(io.BytesIO(data.encode("utf-8")), mimetype="text/plain", resumable=True)
-            drive.files().update(fileId=file["id"], media_body=media_body).execute()
+            media_body = MediaIoBaseUpload(
+                io.BytesIO(data.encode("utf-8")),
+                mimetype="text/plain",
+                resumable=True,
+            )
+            drive.files().update(
+                fileId=file["id"], media_body=media_body
+            ).execute()
 
             logging.info(f"Документ успешно создан с именем: {name}")
 
@@ -105,30 +124,21 @@ def create_google_drive_document(request):
 
             return Response(
                 {
-                    "message": "Документ успешно создан.",
-                    "file_id": file_id,
+                    "Выполнено": "Документ успешно создан.",
                     "file_name": file_info["name"],
                 },
-                status=status.HTTP_200_OK
-            )
-        except NotFound:
-            logging.warning(f"Документ с именем {name} уже существует.")
-
-            return Response(
-                {"message": "Документ с таким именем уже существует."},
-                status=status.HTTP_200_OK
+                status=status.HTTP_200_OK,
             )
         except Exception as e:
             logging.exception("Произошла ошибка при создании документа.")
 
-            return Response({
-                "error": f"Произошла ошибка при создании документа: {e}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            return Response(
+                {"Ошибка": f"Произошла ошибка при создании документа: {e}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
     logging.warning("Неверный запрос.")
 
     return Response(
-        {"error": "Неверный запрос."},
-        status=status.HTTP_400_BAD_REQUEST
+        {"error": "Неверный запрос."}, status=status.HTTP_400_BAD_REQUEST
     )

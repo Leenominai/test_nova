@@ -3,7 +3,10 @@ from drf_spectacular.utils import (
     extend_schema,
 )
 
-from .serializers import BadRequestErrorSerializer, InternalServerErrorSerializer
+from .serializers import (
+    BadRequestErrorSerializer,
+    InternalServerErrorSerializer,
+)
 
 
 user_me_view_request_schema = extend_schema(
