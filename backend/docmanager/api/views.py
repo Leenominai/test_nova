@@ -45,6 +45,18 @@ def create_google_drive_document(request):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        if len(name) > 128:
+            return Response(
+                {"error": "Длина поля 'name' не должна превышать 128 символов."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if len(data) > 10485760:
+            return Response(
+                {"error": "Файл не должен превышать 10 МБ."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         creds = None
         token_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'token.json')
 
