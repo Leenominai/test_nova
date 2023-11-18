@@ -50,8 +50,12 @@ jobs:
           script: |
             sudo docker-compose down
             sudo docker pull ${{ secrets.DOCKER_USERNAME }}/test_nova_backend
-            rm .env
+            
+            if [ -f .env ]; then
+              rm .env
+            fi
             touch .env
+            
             echo ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }} >> .env
             echo SECRET_KEY=${{ secrets.SECRET_KEY }} >> .env
 
