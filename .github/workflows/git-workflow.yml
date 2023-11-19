@@ -25,8 +25,8 @@ jobs:
 
       - name: Create credentials.json file
         run: |
-          echo "${{ secrets.credentials }}" > backend/docmanager/api/credentials.json
-          echo "${{ secrets.token }}" > backend/docmanager/api/token.json
+          echo "${{ secrets.API_CREDENTIALS }}" > backend/docmanager/api/credentials.json
+          echo "${{ secrets.API_TOKEN }}" > backend/docmanager/api/token.json
         working-directory: ${{ github.workspace }}
 
       - name: Push Backend to Docker Hub
