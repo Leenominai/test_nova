@@ -5,7 +5,6 @@ import os
 from django.views.decorators.csrf import csrf_exempt
 from drf_spectacular.utils import extend_schema
 from google.auth.transport.requests import Request
-from google.api_core.exceptions import NotFound
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
