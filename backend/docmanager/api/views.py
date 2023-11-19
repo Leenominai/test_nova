@@ -96,7 +96,7 @@ def create_google_drive_document(request):
                 logging.warning(f"Документ с именем {name} уже существует.")
                 return Response(
                     {"Ошибка": "Документ с таким именем уже существует."},
-                    status=status.HTTP_200_OK,
+                    status=status.HTTP_409_CONFLICT,
                 )
 
             file = (
