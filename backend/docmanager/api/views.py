@@ -61,6 +61,10 @@ def create_google_drive_document(request):
             )
 
         creds = None
+
+        credentials_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "credentials.json"
+        )
         token_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), "token.json"
         )
@@ -73,9 +77,6 @@ def create_google_drive_document(request):
                 with open(token_path, "w") as token:
                     token.write(creds.to_json())
         else:
-            credentials_path = os.path.join(
-                os.path.dirname(os.path.abspath(__file__)), "credentials.json"
-            )
             flow = InstalledAppFlow.from_client_secrets_file(
                 credentials_path, SCOPES
             )
