@@ -21,7 +21,55 @@ SCOPES = ["https://www.googleapis.com/auth/drive.file"]
 logging.basicConfig(level=logging.INFO)
 
 
+def validate_request_data(data, name):
+    """
+    Проверяет данные запроса на наличие обязательных полей.
+
+    Args:
+        data (str): Текстовое содержимое документа.
+        name (str): Название документа.
+
+    Returns:
+        Response: Объект ответа Django REST framework в случае ошибки, иначе None.
+    """
+    if data is None or name is None:
+        return Response(
+            {"Ошибка": "Поле 'data' и 'name' должны быть указаны в запросе."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if len(name) == 0:
+        return Response(
+            {"Ошибка": "Поле 'name' должно быть заполнено."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if len(name) > 128:
+        return Response(
+            {"Ошибка": "Длина поля 'name' не должна превышать 128 символов."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if len(data) > 3145728:
+        return Response(
+            {"Ошибка": "Файл не должен превышать 3 МБ."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    return None
+
+
 def decrypt_json_data(encrypted_file_path, key):
+    """
+    Расшифровывает файл с использованием ключа и сохраняет расшифрованные данные в новом файле.
+
+    Args:
+        encrypted_file_path (str): Путь к файлу, который требуется расшифровать.
+        key (str): Ключ для расшифровки.
+
+    Returns:
+        str: Путь к созданному расшифрованному файлу.
+    """
     cipher_suite = Fernet(key)
 
     with open(encrypted_file_path, 'rb') as encrypted_file:
@@ -44,37 +92,22 @@ def create_google_drive_document(request):
     """
     Создает документ в Google Drive.
 
-    request.data:
-        data: Текстовое содержимое документа
-        name: Название документа
+    Args:
+        request.data:
+            data (str): Текстовое содержимое документа.
+            name (str): Название документа.
 
+    Returns:
+        Response: Ответ API с результатом выполнения операции.
+        :param request:
     """
-
     if request.method == "POST":
         data = request.data.get("data")
         name = request.data.get("name")
 
-        if data is None or name is None:
-            return Response(
-                {
-                    "Ошибка": "Поле 'data' и 'name' должны быть указаны в запросе."
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        if len(name) > 128:
-            return Response(
-                {
-                    "Ошибка": "Длина поля 'name' не должна превышать 128 символов."
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        if len(data) > 3145728:
-            return Response(
-                {"Ошибка": "Файл не должен превышать 3 МБ."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        error_response = validate_request_data(data, name)
+        if error_response:
+            return error_response
 
         encrypted_credentials_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), "credentials.json.enc"

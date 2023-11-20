@@ -1,9 +1,9 @@
 from rest_framework import serializers
 
 
-class BadRequestErrorSerializer(serializers.Serializer):
+class ConflictErrorSerializer(serializers.Serializer):
     detail = serializers.CharField(
-        default="Неверный запрос.",
+        default="Конфликт файлов.",
         help_text="Сообщение об ошибке",
     )
 

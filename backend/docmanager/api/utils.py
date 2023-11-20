@@ -1,13 +1,27 @@
 from cryptography.fernet import Fernet
-import json
-import os
 
 
 def generate_key():
+    """
+    Генерирует ключ для шифрования.
+
+    Returns:
+        str: Сгенерированный ключ в виде строки.
+    """
     return Fernet.generate_key()
 
 
 def encrypt_file(file_path, key):
+    """
+    Шифрует содержимое файла с использованием ключа и сохраняет зашифрованные данные в новом файле.
+
+    Args:
+        file_path (str): Путь к файлу, который требуется зашифровать.
+        key (str): Ключ для шифрования.
+
+    Returns:
+        str: Путь к созданному зашифрованному файлу.
+    """
     cipher_suite = Fernet(key)
 
     with open(file_path, 'rb') as file:

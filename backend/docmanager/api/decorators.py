@@ -4,7 +4,7 @@ from drf_spectacular.utils import (
 )
 
 from .serializers import (
-    BadRequestErrorSerializer,
+    ConflictErrorSerializer,
     InternalServerErrorSerializer,
 )
 
@@ -16,9 +16,9 @@ user_me_view_request_schema = extend_schema(
         200: OpenApiResponse(
             description="Документ успешно создан.",
         ),
-        400: OpenApiResponse(
-            response=BadRequestErrorSerializer,
-            description="Error: Неверный запрос.",
+        409: OpenApiResponse(
+            response=ConflictErrorSerializer,
+            description="Error: Конфликт файлов.",
         ),
         500: OpenApiResponse(
             response=InternalServerErrorSerializer,
