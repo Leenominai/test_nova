@@ -2,6 +2,7 @@ import io
 import logging
 import os
 
+from cryptography.fernet import Fernet
 from django.views.decorators.csrf import csrf_exempt
 from drf_spectacular.utils import extend_schema
 from google.auth.transport.requests import Request
@@ -18,6 +19,21 @@ from .decorators import user_me_view_request_schema
 
 SCOPES = ["https://www.googleapis.com/auth/drive.file"]
 logging.basicConfig(level=logging.INFO)
+
+
+def decrypt_json_data(encrypted_file_path, key):
+    cipher_suite = Fernet(key)
+
+    with open(encrypted_file_path, 'rb') as encrypted_file:
+        encrypted_data = encrypted_file.read()
+
+    decrypted_data = cipher_suite.decrypt(encrypted_data)
+
+    decrypted_file_path = encrypted_file_path[:-4]
+    with open(decrypted_file_path, 'wb') as decrypted_file:
+        decrypted_file.write(decrypted_data)
+
+    return decrypted_file_path
 
 
 @extend_schema(tags=["Загрузка файла в Google Drive"])
@@ -59,6 +75,17 @@ def create_google_drive_document(request):
                 {"Ошибка": "Файл не должен превышать 3 МБ."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        encrypted_credentials_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "credentials.json.enc"
+        )
+        encrypted_token_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "token.json.enc"
+        )
+        DECRYPTION_KEY = os.getenv("DECRYPTION_KEY")
+
+        decrypt_json_data(encrypted_credentials_path, DECRYPTION_KEY)
+        decrypt_json_data(encrypted_token_path, DECRYPTION_KEY)
 
         creds = None
 
