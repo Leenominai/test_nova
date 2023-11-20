@@ -30,7 +30,8 @@ def validate_request_data(data, name):
         name (str): Название документа.
 
     Returns:
-        Response: Объект ответа Django REST framework в случае ошибки, иначе None.
+        Response: Объект ответа Django REST framework в случае ошибки,
+        иначе None.
     """
     if data is None or name is None:
         return Response(
@@ -61,10 +62,12 @@ def validate_request_data(data, name):
 
 def decrypt_json_data(encrypted_file_path, key):
     """
-    Расшифровывает файл с использованием ключа и сохраняет расшифрованные данные в новом файле.
+    Расшифровывает файл с использованием ключа и
+    сохраняет расшифрованные данные в новом файле.
 
     Args:
-        encrypted_file_path (str): Путь к файлу, который требуется расшифровать.
+        encrypted_file_path (str): Путь к файлу,
+        который требуется расшифровать.
         key (str): Ключ для расшифровки.
 
     Returns:
@@ -72,13 +75,13 @@ def decrypt_json_data(encrypted_file_path, key):
     """
     cipher_suite = Fernet(key)
 
-    with open(encrypted_file_path, 'rb') as encrypted_file:
+    with open(encrypted_file_path, "rb") as encrypted_file:
         encrypted_data = encrypted_file.read()
 
     decrypted_data = cipher_suite.decrypt(encrypted_data)
 
     decrypted_file_path = encrypted_file_path[:-4]
-    with open(decrypted_file_path, 'wb') as decrypted_file:
+    with open(decrypted_file_path, "wb") as decrypted_file:
         decrypted_file.write(decrypted_data)
 
     logging.info(f"Файл успешно расшифрован: {decrypted_file_path}")
@@ -107,7 +110,9 @@ def initialize_google_drive(credentials_path, token_path):
             with open(token_path, "w") as token:
                 token.write(creds.to_json())
     else:
-        flow = InstalledAppFlow.from_client_secrets_file(credentials_path, SCOPES)
+        flow = InstalledAppFlow.from_client_secrets_file(
+            credentials_path, SCOPES
+        )
         creds = flow.run_local_server(port=0)
 
         with open(token_path, "w") as token:
@@ -143,9 +148,7 @@ def create_google_drive_file(drive, name, data):
         mimetype="text/plain",
         resumable=True,
     )
-    drive.files().update(
-        fileId=file["id"], media_body=media_body
-    ).execute()
+    drive.files().update(fileId=file["id"], media_body=media_body).execute()
 
     return file["id"]
 
