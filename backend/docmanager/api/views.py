@@ -81,7 +81,93 @@ def decrypt_json_data(encrypted_file_path, key):
     with open(decrypted_file_path, 'wb') as decrypted_file:
         decrypted_file.write(decrypted_data)
 
+    logging.info(f"Файл успешно расшифрован: {decrypted_file_path}")
+
     return decrypted_file_path
+
+
+def initialize_google_drive(credentials_path, token_path):
+    """
+    Инициализирует объект Google Drive API.
+
+    Args:
+        credentials_path (str): Путь к файлу credentials.json.
+        token_path (str): Путь к файлу token.json.
+
+    Returns:
+        Resource: Объект Google Drive API.
+    """
+    creds = None
+
+    if os.path.exists(token_path):
+        creds = Credentials.from_authorized_user_file(token_path, SCOPES)
+        if creds.expired:
+            creds.refresh(Request())
+
+            with open(token_path, "w") as token:
+                token.write(creds.to_json())
+    else:
+        flow = InstalledAppFlow.from_client_secrets_file(credentials_path, SCOPES)
+        creds = flow.run_local_server(port=0)
+
+        with open(token_path, "w") as token:
+            token.write(creds.to_json())
+
+    logging.info("Объект Google Drive API успешно инициализирован.")
+
+    return build("drive", "v3", credentials=creds)
+
+
+def create_google_drive_file(drive, name, data):
+    """
+    Создает новый документ в Google Drive.
+
+    Args:
+        drive (Resource): Объект Google Drive API.
+        name (str): Имя файла.
+        data (str): Текстовое содержимое документа.
+
+    Returns:
+        str: Идентификатор созданного файла.
+    """
+    file = (
+        drive.files()
+        .create(
+            body={"name": name, "mimeType": "text/plain"},
+        )
+        .execute()
+    )
+
+    media_body = MediaIoBaseUpload(
+        io.BytesIO(data.encode("utf-8")),
+        mimetype="text/plain",
+        resumable=True,
+    )
+    drive.files().update(
+        fileId=file["id"], media_body=media_body
+    ).execute()
+
+    return file["id"]
+
+
+def check_existing_file(drive, name):
+    """
+    Проверяет, существует ли файл с указанным именем в Google Drive.
+
+    Args:
+        drive (Resource): Объект Google Drive API.
+        name (str): Имя файла.
+
+    Returns:
+        bool: True, если файл существует, иначе False.
+    """
+    existing_files = (
+        drive.files()
+        .list(q=f"name='{name}'", pageSize=1, fields="files(id, name)")
+        .execute()
+    )
+
+    return bool(existing_files.get("files"))
 
 
 @extend_schema(tags=["Загрузка файла в Google Drive"])
@@ -105,9 +191,9 @@ def create_google_drive_document(request):
         data = request.data.get("data")
         name = request.data.get("name")
 
-        error_response = validate_request_data(data, name)
-        if error_response:
-            return error_response
+        validation_result = validate_request_data(data, name)
+        if validation_result:
+            return validation_result
 
         encrypted_credentials_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), "credentials.json.enc"
@@ -117,10 +203,10 @@ def create_google_drive_document(request):
         )
         DECRYPTION_KEY = os.getenv("DECRYPTION_KEY")
 
-        decrypt_json_data(encrypted_credentials_path, DECRYPTION_KEY)
-        decrypt_json_data(encrypted_token_path, DECRYPTION_KEY)
-
-        creds = None
+        if os.path.exists(encrypted_credentials_path):
+            decrypt_json_data(encrypted_credentials_path, DECRYPTION_KEY)
+        if os.path.exists(encrypted_token_path):
+            decrypt_json_data(encrypted_token_path, DECRYPTION_KEY)
 
         credentials_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), "credentials.json"
@@ -129,57 +215,20 @@ def create_google_drive_document(request):
             os.path.dirname(os.path.abspath(__file__)), "token.json"
         )
 
-        if os.path.exists(token_path):
-            creds = Credentials.from_authorized_user_file(token_path, SCOPES)
-            if creds.expired:
-                creds.refresh(Request())
+        drive = initialize_google_drive(credentials_path, token_path)
 
-                with open(token_path, "w") as token:
-                    token.write(creds.to_json())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                credentials_path, SCOPES
+        if check_existing_file(drive, name):
+            logging.warning(f"Документ с именем {name} уже существует.")
+            return Response(
+                {"Ошибка": "Документ с таким именем уже существует."},
+                status=status.HTTP_409_CONFLICT,
             )
-            creds = flow.run_local_server(port=0)
-
-            with open(token_path, "w") as token:
-                token.write(creds.to_json())
 
         try:
-            drive = build("drive", "v3", credentials=creds)
-
-            existing_files = (
-                drive.files()
-                .list(q=f"name='{name}'", pageSize=1, fields="files(id, name)")
-                .execute()
-            )
-            if existing_files.get("files"):
-                logging.warning(f"Документ с именем {name} уже существует.")
-                return Response(
-                    {"Ошибка": "Документ с таким именем уже существует."},
-                    status=status.HTTP_409_CONFLICT,
-                )
-
-            file = (
-                drive.files()
-                .create(
-                    body={"name": name, "mimeType": "text/plain"},
-                )
-                .execute()
-            )
-
-            media_body = MediaIoBaseUpload(
-                io.BytesIO(data.encode("utf-8")),
-                mimetype="text/plain",
-                resumable=True,
-            )
-            drive.files().update(
-                fileId=file["id"], media_body=media_body
-            ).execute()
+            file_id = create_google_drive_file(drive, name, data)
 
             logging.info(f"Документ успешно создан с именем: {name}")
 
-            file_id = file["id"]
             file_info = drive.files().get(fileId=file_id).execute()
 
             return Response(
